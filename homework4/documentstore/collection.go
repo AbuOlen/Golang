@@ -1,7 +1,7 @@
 package documentstore
 
 type Collection struct {
-	docs map[string]Document
+	docs   map[string]Document
 	config CollectionConfig
 }
 
@@ -11,9 +11,12 @@ type CollectionConfig struct {
 
 func (s *Collection) Put(doc Document) {
 	// Потрібно перевірити що документ містить поле `{cfg.PrimaryKey}` типу `string`
-	key_field, ok := doc.Fields[s.config.PrimaryKey]
-	if ok && key_field.Type == "string" {
-		s.docs[s.config.PrimaryKey] = doc
+	keyField, ok := doc.Fields[s.config.PrimaryKey]
+	if ok && keyField.Type == DocumentFieldTypeString {
+		key, isString := keyField.Value.(string)
+		if isString && len(key) > 0 {
+			s.docs[key] = doc
+		}
 	}
 }
 

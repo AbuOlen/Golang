@@ -11,8 +11,8 @@ func NewStore() *Store {
 func (s *Store) CreateCollection(name string, cfg *CollectionConfig) (bool, *Collection) {
 	// Створюємо нову колекцію і повертаємо `true` якщо колекція була створена
 	// Якщо ж колекція вже створеня то повертаємо `false` та nil
-	col := Collection{ docs: make(map[string]Document), config: *cfg }
-	if &col == nil {
+	col := Collection{docs: make(map[string]Document), config: *cfg}
+	if cfg == nil {
 		return false, nil
 	}
 	s.collections[name] = col
@@ -21,7 +21,9 @@ func (s *Store) CreateCollection(name string, cfg *CollectionConfig) (bool, *Col
 
 func (s *Store) GetCollection(name string) (*Collection, bool) {
 	col, ok := s.collections[name]
-	if !ok { return nil, false; }
+	if !ok {
+		return nil, false
+	}
 	return &col, true
 }
 
