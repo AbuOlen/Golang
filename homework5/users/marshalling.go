@@ -53,21 +53,14 @@ func UnmarshalDocument(doc *ds.Document, output any) error {
 	structValue := val.Elem()
 	structType := structValue.Type()
 
-	// Iterate over the keys in the map
 	for key, value := range doc.Fields {
 		if field, _ := structType.FieldByName(key); field.IsExported() {
 			fieldValue := structValue.FieldByName(key)
-
-			// Check if the fieldValue is settable (can assign to it)
 			if fieldValue.CanSet() {
-				// Convert the map value to the appropriate type
 				mapValue := reflect.ValueOf(value.Value)
-
-				// Ensure type compatibility
 				if mapValue.Type().AssignableTo(fieldValue.Type()) {
-					fieldValue.Set(mapValue) // Assign the value
+					fieldValue.Set(mapValue)
 				} else if mapValue.Type().ConvertibleTo(fieldValue.Type()) {
-					// Convert and set if types are convertible
 					fieldValue.Set(mapValue.Convert(fieldValue.Type()))
 				} else {
 					return fmt.Errorf("cannot assign value of type %s to field %s of type %s",
