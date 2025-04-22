@@ -3,70 +3,94 @@ package documentstore
 import (
 	"bufio"
 	"encoding/json"
-	"os"
 	"log/slog"
+	"os"
 )
 
+var logger = slog.Default()
+
 type Store struct {
-	Collections map[string]Collection
-	logger *slog.Logger
+	collections map[string]Collection
+}
+
+func (s *Store) MarshalJSON() ([]byte, error) {
+	type Alias struct {
+		Collections map[string]Collection `json:"collections"`
+	}
+	alias := Alias{
+		Collections: s.collections,
+	}
+
+	return json.Marshal(alias)
+}
+
+func (s *Store) UnmarshalJSON(data []byte) error {
+	// Create an alias or temporary struct for unmarshalling
+	alias := struct {
+		Collections map[string]Collection `json:"collections"`
+	}{}
+
+	// Unmarshal into the alias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+
+	// Set private field manually
+	s.collections = alias.Collections
+	return nil
 }
 
 func NewStore() *Store {
-	s := Store{Collections: make(map[string]Collection)}
-	log := slog.Default()
-	s.SetLogger(log)
-	s.GetLogger().Info("Created")
-	return &s
+	return &Store{collections: make(map[string]Collection)}
 }
 
 func (s *Store) CreateCollection(name string, cfg *CollectionConfig) (bool, *Collection) {
 	// Створюємо нову колекцію і повертаємо `true` якщо колекція була створена
 	// Якщо ж колекція вже створеня то повертаємо `false` та nil
 	if cfg == nil {
-		s.GetLogger().Warn("CollectionConfig is nil, cannot create collection", "name", name)
+		logger.Warn("CollectionConfig is nil, cannot create collection", "name", name)
 		return false, nil
 	}
-	col := Collection{Docs: make(map[string]Document), Config: *cfg}
+	col := Collection{docs: make(map[string]Document), config: *cfg}
 
-	_, exists := s.Collections[name]
+	_, exists := s.collections[name]
 	if exists {
-		s.GetLogger().Warn("Collection already exists", "name", name)
+		logger.Warn("Collection already exists", "name", name)
 		return false, nil
 	}
 
-	s.Collections[name] = col
-	s.GetLogger().Info("Collection created", "name", name)
+	s.collections[name] = col
+	logger.Info("Collection created", "name", name)
 	return true, &col
 }
 
 func (s *Store) GetCollection(name string) (*Collection, bool) {
-	col, ok := s.Collections[name]
+	col, ok := s.collections[name]
 	if !ok {
 
-		s.GetLogger().Warn("Collection not found", "name", name)
+		logger.Warn("Collection not found", "name", name)
 		return nil, false
 	}
-	s.GetLogger().Info("Collection retrieved", "name", name)
+	logger.Info("Collection retrieved", "name", name)
 	return &col, true
 }
 
 func (s *Store) DeleteCollection(name string) bool {
-	_, ok := s.Collections[name]
+	_, ok := s.collections[name]
 	if !ok {
 
-		s.GetLogger().Warn("Collection not found for deletion", "name", name)
+		logger.Warn("Collection not found for deletion", "name", name)
 		return false
 	}
-	delete(s.Collections, name)
-	s.GetLogger().Info("Collection deleted", "name", name)
+	delete(s.collections, name)
+	logger.Info("Collection deleted", "name", name)
 	return true
 }
 
 func NewStoreFromDump(dump []byte) (*Store, error) {
 	// Функція повинна створити та проініціалізувати новий `Store`
 	// зі всіма колекціями да даними з вхідного дампу.
-	store := Store{Collections: make(map[string]Collection)}
+	var store Store
 	err := json.Unmarshal(dump, &store)
 	if err != nil {
 		return nil, err
@@ -78,10 +102,10 @@ func (s *Store) Dump() ([]byte, error) {
 	// Методи повинен віддати дамп нашого стору в який включені дані про колекції та документ
 	data, err := json.Marshal(s)
 	if err != nil {
-		s.GetLogger().Error("Failed to marshal store", "error", err)
+		logger.Error("Failed to marshal store", "error", err)
 		return nil, err
 	}
-	s.GetLogger().Info("Store dumped to JSON")
+	logger.Info("Store dumped to JSON")
 	return data, nil
 }
 
@@ -124,10 +148,11 @@ func (s *Store) DumpToFile(filename string) error {
 	defer func() {
 		err = file.Close()
 		if err != nil {
-			s.GetLogger().Error("Failed to open file for writing", "filename", filename, "error", err)
+			logger.Error("Failed to open file for writing", "filename", filename, "error", err)
 		}
 	}()
 
+	file.Truncate(0)
 	writer := bufio.NewWriter(file)
 	_, err = writer.Write(data)
 	if err != nil {
@@ -135,15 +160,4 @@ func (s *Store) DumpToFile(filename string) error {
 	}
 	writer.Flush()
 	return nil
-}
-
-func (s *Store) SetLogger(logger *slog.Logger) {
-	s.logger = logger
-}
-
-func (s *Store) GetLogger() *slog.Logger {
-	if s.logger == nil {
-		s.logger = slog.Default()
-	}
-	return s.logger
 }
