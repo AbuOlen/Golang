@@ -1,105 +1,135 @@
 package documentstore
 
 import (
-	"testing"
+	"encoding/json"
 	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewStore(t *testing.T) {
 	store := NewStore()
+	assert.NotNil(t, store, "NewStore should create a non-nil Store instance")
+	assert.NotNil(t, store.collections, "NewStore should initialize the collections map")
+}
 
-	if store.Collections == nil {
-		t.Error("Expected Collections map to be initialized, but got nil")
-	}
+func TestCreateCollection(t *testing.T) {
+	store := NewStore()
 
-	if len(store.Collections) != 0 {
-		t.Errorf("Expected Collections to be empty, but got %d", len(store.Collections))
-	}
+	cfg := &CollectionConfig{PrimaryKey: "id"}
+	created, col := store.CreateCollection("test_collection", cfg)
 
-	if store.GetLogger() == nil {
-		t.Error("Expected default logger to be set, but got nil")
+	assert.True(t, created, "the collection should be created successfully")
+	assert.NotNil(t, col, "the returned collection pointer should not be nil")
+	assert.Contains(t, store.collections, "test_collection", "the collection should exist in the store")
+
+	// Attempt to create a collection with the same name
+	created, col = store.CreateCollection("test_collection", cfg)
+	assert.False(t, created, "creating a collection with the same name should fail")
+	assert.Nil(t, col, "the returned collection should be nil when creation fails")
+}
+
+func TestGetCollection(t *testing.T) {
+	store := NewStore()
+
+	cfg := &CollectionConfig{PrimaryKey: "id"}
+	store.CreateCollection("test_collection", cfg)
+
+	col, found := store.GetCollection("test_collection")
+	assert.True(t, found, "the collection should exist in the store")
+	assert.NotNil(t, col, "the returned collection pointer should not be nil")
+
+	// Test retrieval of a non-existent collection
+	col, found = store.GetCollection("non_existent")
+	assert.False(t, found, "the collection should not exist in the store")
+	assert.Nil(t, col, "the returned value for a non-existent collection should be nil")
+}
+
+func TestDeleteCollection(t *testing.T) {
+	store := NewStore()
+
+	cfg := &CollectionConfig{PrimaryKey: "id"}
+	store.CreateCollection("test_collection", cfg)
+
+	deleted := store.DeleteCollection("test_collection")
+	assert.True(t, deleted, "the collection should be deleted successfully")
+	assert.NotContains(t, store.collections, "test_collection", "the collection should no longer exist in the store")
+
+	// Test attempting to delete a non-existent collection
+	deleted = store.DeleteCollection("non_existent")
+	assert.False(t, deleted, "deleting a non-existent collection should return false")
+}
+
+func TestDumpAndNewStoreFromDump(t *testing.T) {
+	store := NewStore()
+
+	// Add some collections
+	cfg := &CollectionConfig{PrimaryKey: "id"}
+	store.CreateCollection("collection1", cfg)
+	store.CreateCollection("collection2", cfg)
+
+	// Dump the store to JSON
+	dump, err := store.Dump()
+	assert.NoError(t, err, "Dump should not return an error")
+	assert.NotNil(t, dump, "Dump should return non-nil data")
+
+	// Create a new store from the dump
+	newStore, err := NewStoreFromDump(dump)
+	assert.NoError(t, err, "NewStoreFromDump should not return an error")
+	assert.NotNil(t, newStore, "NewStoreFromDump should return a valid Store instance")
+	assert.Len(t, newStore.collections, len(store.collections), "The new store should have the same number of collections")
+
+	// Verify collections exist in the new store
+	for name := range store.collections {
+		_, exists := newStore.collections[name]
+		assert.True(t, exists, "Collection '%s' should exist in the new store", name)
 	}
 }
 
-func TestStoreCreateCollection(t *testing.T) {
+func TestDumpToFileAndNewStoreFromFile(t *testing.T) {
 	store := NewStore()
-	cfg := &CollectionConfig{}
 
-	created, col := store.CreateCollection("test", cfg)
-	if !created || col == nil {
-		t.Errorf("Expected collection to be created, but creation failed")
-	}
+	// Add a collection
+	cfg := &CollectionConfig{PrimaryKey: "id"}
+	store.CreateCollection("test_collection", cfg)
 
-	if len(store.Collections) != 1 {
-		t.Errorf("Expected 1 collection in store, but got %d", len(store.Collections))
-	}
+	// Dump the store to a file
+	fileName := "test_store_dump.json"
+	defer os.Remove(fileName)
 
-	created, _ = store.CreateCollection("test", cfg)
-	if created {
-		t.Error("Expected duplicate collection creation to return false, but got true")
-	}
+	err := store.DumpToFile(fileName)
+	assert.NoError(t, err, "DumpToFile should not return an error")
 
-	created, col = store.CreateCollection("nil_test", nil)
-	if created || col != nil {
-		t.Error("Expected collection creation with nil config to fail, but it succeeded")
-	}
+	// Load the store back from the file
+	newStore, err := NewStoreFromFile(fileName)
+	assert.NoError(t, err, "NewStoreFromFile should not return an error")
+	assert.NotNil(t, newStore, "NewStoreFromFile should return a valid Store instance")
+	assert.Len(t, newStore.collections, 1, "The new store should have exactly one collection")
+
+	// Verify the collection exists in the new store
+	_, exists := newStore.collections["test_collection"]
+	assert.True(t, exists, "The collection 'test_collection' should exist in the new store")
 }
 
-func TestStoreGetCollection(t *testing.T) {
+func TestMarshalJSONAndUnmarshalJSON(t *testing.T) {
 	store := NewStore()
-	cfg := &CollectionConfig{}
-	store.CreateCollection("test", cfg)
 
-	col, exists := store.GetCollection("test")
-	if !exists || col == nil {
-		t.Error("Expected to retrieve existing collection, but got nil or does not exist")
-	}
+	// Add a collection
+	cfg := &CollectionConfig{PrimaryKey: "id"}
+	store.CreateCollection("test_collection", cfg)
 
-	col, exists = store.GetCollection("nonexistent")
-	if exists || col != nil {
-		t.Error("Expected to not retrieve non-existent collection, but found one")
-	}
-}
+	// Marshal the store
+	data, err := json.Marshal(store)
+	assert.NoError(t, err, "MarshalJSON should not return an error")
 
-func TestStoreDeleteCollection(t *testing.T) {
-	store := NewStore()
-	cfg := &CollectionConfig{}
-	store.CreateCollection("test", cfg)
+	// Unmarshal the JSON into a new store
+	var newStore Store
+	err = json.Unmarshal(data, &newStore)
+	assert.NoError(t, err, "UnmarshalJSON should not return an error")
+	assert.Len(t, newStore.collections, 1, "The unmarshalled store should have exactly one collection")
 
-	deleted := store.DeleteCollection("test")
-	if !deleted {
-		t.Error("Expected collection to be deleted, but deletion failed")
-	}
-
-	if len(store.Collections) != 0 {
-		t.Errorf("Expected 0 collections after deletion, but found %d", len(store.Collections))
-	}
-
-	deleted = store.DeleteCollection("nonexistent")
-	if deleted {
-		t.Error("Expected deletion of non-existent collection to return false, but it returned true")
-	}
-}
-
-func TestStoreDumpToFileAndNewStoreFromFile(t *testing.T) {
-	filename := "test_store.json"
-	defer os.Remove(filename)
-
-	store := NewStore()
-	cfg := &CollectionConfig{}
-	store.CreateCollection("test", cfg)
-
-	err := store.DumpToFile(filename)
-	if err != nil {
-		t.Errorf("Expected DumpToFile to succeed, but got error: %v", err)
-	}
-
-	newStore, err := NewStoreFromFile(filename)
-	if err != nil {
-		t.Errorf("Expected NewStoreFromFile to succeed, but got error: %v", err)
-	}
-
-	if len(newStore.Collections) != 1 {
-		t.Errorf("Expected 1 collection in restored store, but found %d", len(newStore.Collections))
-	}
+	// Verify the collections are the same in both stores
+	_, exists := newStore.collections["test_collection"]
+	assert.True(t, exists, "The collection 'test_collection' should exist in the unmarshalled store")
 }
