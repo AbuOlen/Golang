@@ -21,14 +21,17 @@ type entry struct {
 }
 
 func NewLruCache(capacity int) LruCache {
-	return LruCacheImpl{
+	if capacity <= 0 {
+		panic("capacity must be positive")
+	}
+	return &LruCacheImpl{
 		capacity: capacity,
-		cache: make(map[string]*list.Element),
+		cache: make(map[string]*list.Element, capacity),
 		list: list.New(),
 	}
 }
 
-func (c LruCacheImpl) Get(key string) (string, bool) {
+func (c* LruCacheImpl) Get(key string) (string, bool) {
 	if elem, found := c.cache[key]; found {
 		c.list.MoveToFront(elem)
 		return elem.Value.(*entry).value, true
@@ -36,7 +39,7 @@ func (c LruCacheImpl) Get(key string) (string, bool) {
 	return "", false
 }
 
-func (c LruCacheImpl) Put(key, value string) {
+func (c* LruCacheImpl) Put(key, value string) {
 	if elem, found := c.cache[key]; found {
 		elem.Value.(*entry).value = value
 		c.list.MoveToFront(elem)
