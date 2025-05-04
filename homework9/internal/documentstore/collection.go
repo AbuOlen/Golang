@@ -64,7 +64,7 @@ func (s *Collection) Put(doc Document) {
 	key, isString := keyField.Value.(string)
 	if isString && len(key) > 0 {
 		s.docs[key] = doc
-		s.updateIndex(doc)
+		s.updateIndex(key, doc, false)
 	}
 }
 
@@ -79,20 +79,39 @@ func (s *Collection) Delete(key string) bool {
 		return false
 	}
 	delete(s.docs, key)
-	s.updateIndex(doc)
+	s.updateIndex(key, doc, true)
 	return true
 }
 
-func (s *Collection) updateIndex(doc Document) {
+func (s *Collection) updateIndex(key string, doc Document, del bool) {
+	idx := s.findIndexForDocument(doc)
+	if idx == nil {
+		return
+	}
+	val := doc.Fields[key].Value
+	// Індексуватись мають тільки поля типу string. Якщо у документа поле має інший тип або взагалі поле відсутнє - воно не попадає в індекс
+	if strVal, ok := val.(string); ok {
+		if del {
+			idx.tree.Delete(StringItem(strVal))
+			delete(idx.lut, strVal)
+		} else {
+			idx.tree.ReplaceOrInsert(StringItem(strVal))
+			idx.lut[strVal] = key
+		}
+	}
+}
+
+func (s *Collection) findIndexForDocument(doc Document) *CollectionIndex {
 	keys := getKeysFromDoc(doc)
 	for _, key := range keys {
 		for indexField := range s.index {
 			if indexField == key {
-				s.DeleteIndex(indexField)
-				s.CreateIndex(indexField)
+				idx := s.index[indexField]
+				return &idx
 			}
 		}
 	}
+	return nil
 }
 
 func (s *Collection) List() []Document {
@@ -152,7 +171,7 @@ func (ci *CollectionIndex) UnmarshalJSON(data []byte) error {
 
 	// Set private field manually
 	ci.lut = alias.Lut
-	ci.tree = btree.New(2) // Assuming degree 2; adjust as needed
+	ci.tree = btree.New(32)
 	for _, key := range alias.Tree {
 		ci.tree.ReplaceOrInsert(StringItem(key))
 	}
@@ -172,9 +191,13 @@ func (s *Collection) CreateIndex(fieldName string) error {
 	if _, ok := s.index[fieldName]; ok {
 		return fmt.Errorf( "Index for field %s already exists", fieldName)
 	}
-	idx := CollectionIndex{ tree: btree.New(2), lut: make(map[string]string) }
+	idx := CollectionIndex{ tree: btree.New(32), lut: make(map[string]string) }
 	for key, doc := range s.docs {
-		val := doc.Fields[fieldName].Value
+		v, ok := doc.Fields[fieldName]
+		if !ok {
+			continue
+		}
+		val := v.Value
 		// Індексуватись мають тільки поля типу string. Якщо у документа поле має інший тип або взагалі поле відсутнє - воно не попадає в індекс
 		if strVal, ok := val.(string); ok {
 			idx.tree.ReplaceOrInsert(StringItem(strVal))
@@ -186,6 +209,9 @@ func (s *Collection) CreateIndex(fieldName string) error {
 }
 
 func (s *Collection) DeleteIndex(fieldName string) error {
+	if _, ok := s.index[fieldName]; !ok {
+		return fmt.Errorf("Index for field %s doesn't exist", fieldName)
+	}
 	delete(s.index, fieldName)
 	return nil
 }

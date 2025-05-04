@@ -63,6 +63,17 @@ func main() {
 			return
 		}
 		fmt.Println(docs)
+
+		col.Delete("key3")
+		d6 := documentWithValue("key6", "val6")
+		col1.Put(d6)
+
+		docs, qerr = col.Query("val", ds.QueryParams{Desc: false, MinValue: strPtr("val2"), MaxValue: strPtr("val6")})
+		if qerr != nil {
+			fmt.Println(qerr)
+			return
+		}
+		fmt.Println(docs)
 	}
 	fmt.Println("Done")
 
