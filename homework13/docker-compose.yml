@@ -1,0 +1,6 @@
+services:
+  server:
+    build: .
+    ports:
+      - "9090:9090"
+    container_name: hw13-server
