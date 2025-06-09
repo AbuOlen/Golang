@@ -1,0 +1,348 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This a sample server for ChatAPI",
+        "title": "ChatAPI",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/api/auth/signin": {
+            "post": {
+                "description": "Signing up new User",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "SignIn",
+                "parameters": [
+                    {
+                        "description": "Sign up request body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_auth.SignInRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sign up succeeded",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_auth.SignInResponse200Body"
+                        }
+                    },
+                    "400": {
+                        "description": "Client error",
+                        "schema": {}
+                    },
+                    "409": {
+                        "description": "User already exists",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/api/auth/signup": {
+            "post": {
+                "description": "Signing up new User",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "SignUp",
+                "parameters": [
+                    {
+                        "description": "Sign up request body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_auth.SignUpRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sign up succeeded",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_auth.SignUpResponse200Body"
+                        }
+                    },
+                    "400": {
+                        "description": "Client error",
+                        "schema": {}
+                    },
+                    "409": {
+                        "description": "User already exists",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/api/counter/increment": {
+            "get": {
+                "description": "Increments counter by 1",
+                "tags": [
+                    "counter"
+                ],
+                "summary": "IncrementCounter",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_counter.CounterResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/message/list": {
+            "post": {
+                "description": "List of messages by channel",
+                "tags": [
+                    "message"
+                ],
+                "summary": "List",
+                "parameters": [
+                    {
+                        "description": "List messages request body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_message.ListMessagesRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List messages retrieval succeeded",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_message.ListMessagesResponseBody"
+                        }
+                    },
+                    "400": {
+                        "description": "Client error",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/api/message/send": {
+            "post": {
+                "description": "Sending new message to channel",
+                "tags": [
+                    "message"
+                ],
+                "summary": "SendMessage",
+                "parameters": [
+                    {
+                        "description": "Send message request body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_message.SendMessageRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Send message succeeded",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_server_handlers_message.SendMessageResponseBody"
+                        }
+                    },
+                    "400": {
+                        "description": "Client error",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {}
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "cmd_server_handlers_auth.SignInRequestBody": {
+            "type": "object",
+            "required": [
+                "name",
+                "password"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2,
+                    "example": "John Doe"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 8,
+                    "example": "12345678"
+                }
+            }
+        },
+        "cmd_server_handlers_auth.SignInResponse200Body": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "cmd_server_handlers_auth.SignUpRequestBody": {
+            "type": "object",
+            "required": [
+                "name",
+                "password"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2,
+                    "example": "John Doe"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 8,
+                    "example": "12345678"
+                }
+            }
+        },
+        "cmd_server_handlers_auth.SignUpResponse200Body": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "description": "swagger:allOf",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/module6_internal_services_user.User"
+                        }
+                    ]
+                }
+            }
+        },
+        "cmd_server_handlers_counter.CounterResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "cmd_server_handlers_message.ListMessagesRequestBody": {
+            "type": "object",
+            "required": [
+                "channel"
+            ],
+            "properties": {
+                "channel": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 5
+                },
+                "last_received_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "cmd_server_handlers_message.ListMessagesResponseBody": {
+            "type": "object",
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/module6_internal_services_message.Message"
+                    }
+                }
+            }
+        },
+        "cmd_server_handlers_message.SendMessageRequestBody": {
+            "type": "object",
+            "required": [
+                "channel",
+                "message"
+            ],
+            "properties": {
+                "channel": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 5
+                },
+                "message": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "minLength": 1
+                }
+            }
+        },
+        "cmd_server_handlers_message.SendMessageResponseBody": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/module6_internal_services_message.Message"
+                }
+            }
+        },
+        "module6_internal_services_message.Message": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "module6_internal_services_user.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2020-01-01T00:00:00+09:00"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "0001M2PVBD5Q1DAMYJ0S2HADD6"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "pwd_hash": {
+                    "type": "string",
+                    "example": "$2a$10$pikzoSYzIs1GRRPi0vermeY1mPH4"
+                }
+            }
+        }
+    }
+}

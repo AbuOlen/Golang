@@ -1,0 +1,235 @@
+definitions:
+  cmd_server_handlers_auth.SignInRequestBody:
+    properties:
+      name:
+        example: John Doe
+        maxLength: 50
+        minLength: 2
+        type: string
+      password:
+        example: "12345678"
+        maxLength: 20
+        minLength: 8
+        type: string
+    required:
+    - name
+    - password
+    type: object
+  cmd_server_handlers_auth.SignInResponse200Body:
+    properties:
+      token:
+        type: string
+    type: object
+  cmd_server_handlers_auth.SignUpRequestBody:
+    properties:
+      name:
+        example: John Doe
+        maxLength: 50
+        minLength: 2
+        type: string
+      password:
+        example: "12345678"
+        maxLength: 20
+        minLength: 8
+        type: string
+    required:
+    - name
+    - password
+    type: object
+  cmd_server_handlers_auth.SignUpResponse200Body:
+    properties:
+      user:
+        allOf:
+        - $ref: '#/definitions/module6_internal_services_user.User'
+        description: swagger:allOf
+    type: object
+  cmd_server_handlers_counter.CounterResponse:
+    properties:
+      count:
+        type: integer
+    type: object
+  cmd_server_handlers_message.ListMessagesRequestBody:
+    properties:
+      channel:
+        maxLength: 20
+        minLength: 5
+        type: string
+      last_received_id:
+        type: string
+    required:
+    - channel
+    type: object
+  cmd_server_handlers_message.ListMessagesResponseBody:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/module6_internal_services_message.Message'
+        type: array
+    type: object
+  cmd_server_handlers_message.SendMessageRequestBody:
+    properties:
+      channel:
+        maxLength: 20
+        minLength: 5
+        type: string
+      message:
+        maxLength: 1024
+        minLength: 1
+        type: string
+    required:
+    - channel
+    - message
+    type: object
+  cmd_server_handlers_message.SendMessageResponseBody:
+    properties:
+      message:
+        $ref: '#/definitions/module6_internal_services_message.Message'
+    type: object
+  module6_internal_services_message.Message:
+    properties:
+      channel:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      user_id:
+        type: string
+    type: object
+  module6_internal_services_user.User:
+    properties:
+      created_at:
+        example: "2020-01-01T00:00:00+09:00"
+        type: string
+      id:
+        example: 0001M2PVBD5Q1DAMYJ0S2HADD6
+        type: string
+      name:
+        example: John Doe
+        type: string
+      pwd_hash:
+        example: $2a$10$pikzoSYzIs1GRRPi0vermeY1mPH4
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This a sample server for ChatAPI
+  title: ChatAPI
+  version: "1.0"
+paths:
+  /api/auth/signin:
+    post:
+      description: Signing up new User
+      parameters:
+      - description: Sign up request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_server_handlers_auth.SignInRequestBody'
+      responses:
+        "200":
+          description: Sign up succeeded
+          schema:
+            $ref: '#/definitions/cmd_server_handlers_auth.SignInResponse200Body'
+        "400":
+          description: Client error
+          schema: {}
+        "409":
+          description: User already exists
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      summary: SignIn
+      tags:
+      - auth
+  /api/auth/signup:
+    post:
+      description: Signing up new User
+      parameters:
+      - description: Sign up request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_server_handlers_auth.SignUpRequestBody'
+      responses:
+        "200":
+          description: Sign up succeeded
+          schema:
+            $ref: '#/definitions/cmd_server_handlers_auth.SignUpResponse200Body'
+        "400":
+          description: Client error
+          schema: {}
+        "409":
+          description: User already exists
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      summary: SignUp
+      tags:
+      - auth
+  /api/counter/increment:
+    get:
+      description: Increments counter by 1
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_server_handlers_counter.CounterResponse'
+      summary: IncrementCounter
+      tags:
+      - counter
+  /api/message/list:
+    post:
+      description: List of messages by channel
+      parameters:
+      - description: List messages request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_server_handlers_message.ListMessagesRequestBody'
+      responses:
+        "200":
+          description: List messages retrieval succeeded
+          schema:
+            $ref: '#/definitions/cmd_server_handlers_message.ListMessagesResponseBody'
+        "400":
+          description: Client error
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      summary: List
+      tags:
+      - message
+  /api/message/send:
+    post:
+      description: Sending new message to channel
+      parameters:
+      - description: Send message request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_server_handlers_message.SendMessageRequestBody'
+      responses:
+        "200":
+          description: Send message succeeded
+          schema:
+            $ref: '#/definitions/cmd_server_handlers_message.SendMessageResponseBody'
+        "400":
+          description: Client error
+          schema: {}
+        "500":
+          description: Internal server error
+          schema: {}
+      summary: SendMessage
+      tags:
+      - message
+swagger: "2.0"

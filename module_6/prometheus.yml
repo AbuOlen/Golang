@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s  # Set the scrape interval to every 5 seconds
+
+scrape_configs:
+  - job_name: 'server-1'
+    static_configs:
+      - targets: ['server1:8080']
+
+  - job_name: 'server-2'
+    static_configs:
+      - targets: [ 'server2:8080' ]
+
+  - job_name: 'server-3'
+    static_configs:
+      - targets: [ 'server3:8080' ]
